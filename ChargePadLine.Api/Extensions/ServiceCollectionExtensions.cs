@@ -2,104 +2,34 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.OpenApi.Models;
 using X509Data.ChargePadLine.Api.Infrastructure;
+
 using X509Data.ChargePadLine.Api.Services;
 
 namespace X509Data.ChargePadLine.Api.Extensions
 {
   public static class ServiceCollectionExtensions
   {
+    public static IServiceCollection AddDBServices(this IServiceCollection services, IConfiguration configuration)
+    {
+      var connectionString = configuration.GetConnectionString("AppDbContext");
+
+      Console.WriteLine($"è¿žæŽ¥å­—ç¬¦ä¸²: {connectionString}");
+
+      services.AddDbContext<AppDbContext>(options =>
+          options.UseNpgsql(connectionString));
+
+      return services;
+    }
+
     public static IServiceCollection AddBusinessServices(this IServiceCollection services, IConfiguration configuration)
     {
       services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
       services.AddScoped<IChargePadLineService, ChargePadLineService>();
+      services.AddScoped<ILatestDataService, LatestDataService>();
 
       return services;
     }
-        public static IServiceCollection AddDBServices(this IServiceCollection services, IConfiguration configuration)
-        {
-            // Ìí¼ÓÈÕÖ¾·þÎñ
-            services.AddLogging(logging =>
-            {
-                logging.AddLog4Net()
-                             .AddFilter("Microsoft.AspNetCore", LogLevel.Warning)
-                             .AddFilter("Microsoft.EntityFrameworkCore", LogLevel.None)
-                             .AddFilter("Microsoft", LogLevel.Warning)
-                             .AddFilter("System", LogLevel.Warning)
-                             // ½ö¶ÔÉè±¸×·ËÝ¶ÁÐ´ËøµÄÈÕÖ¾½øÐÐÒÖÖÆ£¬±ÜÃâ¿ØÖÆÌ¨Ë¢ÆÁ£¨Ö»±£Áô´íÎó¼¶±ð£©
-                             .AddFilter("Modbus.Service.Cache.DeviceTraceReadWriteLock", LogLevel.Error);
-            });
-
-            #region SWaggerÅäÖÃ
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo
-                {
-                    Title = "Modbus.Api",
-                    Version = "v1",
-                    Description = "Modbus.Api",
-                });
-
-                // ½â¾öÖØ¸´Â·ÓÉ/³åÍ»Ê±Å×³öµÄÒì³££¨È¡Ê×¸öÃèÊö£©£¬·ÀÖ¹ swagger.json 500
-                c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
-
-                //Ìí¼Ó°²È«¶¨Òå
-                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-                {
-                    Description = "JWTÊÚÈ¨",
-                    Name = "Authorization", //Ä¬ÈÏµÄ²ÎÊýÃû
-                    In = ParameterLocation.Header,//·ÅÓÚÇëÇóÍ·ÖÐ
-                    Type = SecuritySchemeType.ApiKey,//ÀàÐÍ
-                    BearerFormat = "JWT",
-                    Scheme = "Bearer"
-                });
-                //Ìí¼Ó°²È«ÒªÇó
-                c.AddSecurityRequirement(new OpenApiSecurityRequirement
-          {
-                    {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer"
-                            }
-                        },
-                        new string[] { }
-                    }
-          });
-            });
-            #endregion
-
-
-           
-            //Ê¹ÓÃpgSql
-            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-            services.AddDbContext<AppDbContext>(options =>
-            {
-                options.UseNpgsql(configuration.GetConnectionString("AppDbContext"));
-                options.UseNpgsql(s => s.MigrationsAssembly(typeof(Program).Assembly.GetName().Name));
-                //Å×³ösqlÎÄ±¾
-                if (configuration["ASPNETCORE_ENVIRONMENT"] == "Development")
-                {
-                    options.EnableSensitiveDataLogging();
-                }
-                if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
-                {
-                    options.LogTo(
-                        Console.WriteLine,
-                        new[] { DbLoggerCategory.Database.Command.Name },
-                        LogLevel.Information
-                    )
-                    .EnableSensitiveDataLogging()  // ÏÔÊ¾ @p0 µÄÊµ¼Ê²ÎÊýÖµ
-                    .EnableDetailedErrors();
-                }
-            });
-
-            
-            return services;
-        }
-    }
+  }
 }

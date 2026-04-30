@@ -26,7 +26,7 @@ namespace X509Data.ChargePadLine.Api.Entities
     /// </summary>
     [Description("序列号/产品唯一码")]
     [Column("SNnumber")]
-    public string SnNumber { get; set; } = "";
+    public string SNnumber { get; set; } = "";
 
     /// <summary>
     /// 站点外键ID
